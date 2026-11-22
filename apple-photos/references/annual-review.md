@@ -6,12 +6,13 @@ Use this workflow for one calendar year at a time. Temporary albums isolate visu
 
 1. Scan every `PHAsset` in the Mac's current local-calendar-year interval. “Photos” includes images, videos, and Live Photos.
 2. Build disjoint batch ranges from time gaps and shooting frequency, with GPS and device continuity as supporting clues.
+   Use [album-naming.md](album-naming.md) to produce editable title proposals; naming never changes cluster membership.
 3. Compare every candidate cluster with existing user albums by asset identifier:
    - Full cover by one album: mark `reuse`; report whether any cluster asset is missing and do not propose a new album.
    - Partial cover: mark `fill existing`; show matched and missing counts and prefer adding the missing range to the best-fitting album after approval.
    - No suitable cover: mark `create new` and propose `create_album_from_date_range`.
 4. Never create a second review album for a cluster already fully covered by an existing album, even when its title or year is imperfect. Flag mixed-date or outside-range contents separately.
-5. Add one `create_remainder_album` operation named `YYYY_未进入批次`. Set `exclude_albums` to new mutually exclusive batch albums and `reuse_albums` to existing albums accepted as coverage. Existing reused albums may contain assets outside the year; only their annual intersection counts.
+5. Add one `create_remainder_album` operation. Its language-aware default is `YYYY_未进入批次` for Chinese or `YYYY_Unbatched` for English, but use a user-supplied catch-all title literally. Set `exclude_albums` to new mutually exclusive batch albums and `reuse_albums` to existing albums accepted as coverage. Existing reused albums may contain assets outside the year; only their annual intersection counts.
 6. Require these invariants before and after apply:
    - `overlapping_batch_memberships == 0`
    - `new_reuse_overlap == 0`
@@ -22,7 +23,7 @@ Use this workflow for one calendar year at a time. Temporary albums isolate visu
 
 ## Durable decision queue
 
-Keep one queue per active year outside the configured archive root, under a Codex state or other non-archive directory. Do not mix queue state, manifests, or logs into the media archive.
+Keep one queue per active year outside the configured archive root, under the current agent's state directory or another non-archive directory. Do not mix queue state, manifests, or logs into the media archive.
 
 Use `scripts/review_queue.py` to create and update the queue. Recording decisions changes only this local JSON file and never calls Photos:
 

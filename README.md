@@ -1,4 +1,4 @@
-# Apple Photos Skill for Codex
+# Apple Photos Agent Skill
 
 [简体中文](README.zh-CN.md)
 
@@ -11,7 +11,7 @@ It analyzes one calendar year at a time, groups assets into review batches, reus
 - People with large, long-running Apple Photos libraries.
 - People who prefer explicit rules and predictable workflows, including neurodivergent users and anyone affected by decision fatigue.
 - People who keep a separate long-term archive and need safe export and comparison steps.
-- Codex users who want PhotoKit automation without directly modifying the private Photos database.
+- Users of Codex, Claude Code, WorkBuddy, or another Agent Skills-compatible local agent who want PhotoKit automation without directly modifying the private Photos database.
 
 ## What problem it solves
 
@@ -40,12 +40,27 @@ Typical photo cleanup creates a loop of tiny decisions: identify a batch, make a
 - macOS with Apple Photos.
 - Xcode Command Line Tools (`xcrun` and the Swift compiler).
 - Python 3.
-- Codex or another skill-compatible agent.
+- A local AI agent that can load Agent Skills and run terminal commands, such as Codex, Claude Code, or WorkBuddy.
 - Full Photos Library access when macOS requests it.
 
 The skill runs locally. It does not upload your photos or metadata.
 
-## Install
+## Agent compatibility
+
+The complete `apple-photos/` folder follows the open Agent Skills layout: `SKILL.md` is the canonical contract, while `scripts/` and `references/` contain executable and progressively loaded support material. The optional `agents/openai.yaml` file improves Codex presentation but is not required by other agents.
+
+| Agent | Installation |
+|---|---|
+| Codex | Copy `apple-photos/` to `~/.codex/skills/apple-photos/`, then restart Codex. |
+| Claude Code | Copy it to `~/.claude/skills/apple-photos/` for personal use, or `.claude/skills/apple-photos/` inside a project. Invoke it as `/apple-photos`. |
+| WorkBuddy | Download the release ZIP and use **Add Skill → Upload Skill** to import the local package. Invoke it from the Skills area, with `/apple-photos`, or by a matching natural-language request. |
+| Other agents | Install the complete folder in that product's Agent Skills directory. If automatic discovery is unavailable, tell the agent to read `apple-photos/SKILL.md` before acting. |
+
+The agent must run locally on the Mac that owns the Photos library. A remote or cloud-only agent cannot access the local System Photo Library unless it is connected to a trusted macOS runner with Photos permission.
+
+See [Agent compatibility](docs/AGENT-COMPATIBILITY.md) for detailed installation and runtime behavior.
+
+## Install for Codex
 
 ```bash
 git clone https://github.com/lynnete07/apple-photos-skill.git
@@ -56,11 +71,11 @@ bash scripts/install.sh
 scripts/apple-photos status
 ```
 
-Restart Codex after installing so the skill can be discovered.
+Restart Codex after installing so the skill can be discovered. For Claude Code and WorkBuddy, use the agent-specific paths or upload flow above.
 
 ## Start with prompts, not commands
 
-Most users should invoke the skill through Codex:
+Most users should invoke the skill through their agent in natural language. Use `$apple-photos` in Codex, `/apple-photos` in Claude Code or WorkBuddy, or the installed skill name supported by the current client:
 
 ```text
 Use $apple-photos to analyze my 2024 photos and videos. Only analyze; do not create or delete anything.
@@ -77,6 +92,32 @@ Use $apple-photos to delete the unmarked assets in album “2024-08-24_Review”
 ```text
 Use $apple-photos to export unmodified originals from album “2024-10-03_Hong Kong” to /Volumes/Archive/Photos. Export complete Live Photo pairs and do not delete anything.
 ```
+
+## Review-album naming
+
+Album names in an analysis are editable proposals, not fixed system identifiers. The default pattern is:
+
+```text
+YYYY-MM-DD_<label>
+```
+
+- `YYYY-MM-DD` is the earliest Photos capture date in the proposed cluster, interpreted in the Mac's local time zone.
+- A high-confidence, user-confirmed place or subject becomes the label, such as `2024-10-03_Hong Kong`.
+- If the subject is uncertain, a concentrated event defaults to `Review topic`; a multi-day or multi-burst cluster defaults to `Review sequence`.
+- The annual catch-all defaults to `YYYY_Unbatched` in English or `YYYY_未进入批次` when the user's working language is Chinese.
+- An existing album that already covers the batch keeps its exact current name.
+
+Before album creation, the analysis must show the proposed name, date range, asset count, evidence, and naming confidence. The user may rename one album, provide a naming template, change the language or separator, omit the date prefix, or rename the catch-all. The final manifest uses the approved title literally; the asset selection does not depend on the wording of the title. Titles only need to be non-empty and uniquely resolvable.
+
+Example analysis output:
+
+| Proposed album | Capture range | Assets | Naming evidence | Confidence | Editable |
+|---|---|---:|---|---|---|
+| `2024-08-24_Xi'an` | Aug 24, 10:12–18:46 | 63 | GPS concentrated in Xi'an; one-day shoot | High | Yes |
+| `2024-09-02_Review sequence` | Sep 2–4 | 118 | Three continuous days and two bursts; no reliable place | Unknown | Yes |
+| `2024_Unbatched` | Remaining annual assets | 27 | Computed by annual coverage verification | Functional | Yes |
+
+If the user renames an album later in Apple Photos, the agent must re-inspect current titles and update any pending queue or manifest before another operation. See [Album naming rules](apple-photos/references/album-naming.md).
 
 ## Command-line entry points
 
@@ -126,7 +167,7 @@ apple-photos-skill/
 │   ├── agents/
 │   ├── references/
 │   └── scripts/
-├── docs/                  # Human-facing safety documentation
+├── docs/                  # Safety and cross-agent documentation
 └── tests/                 # Public validation fixtures and tests
 ```
 
@@ -142,7 +183,7 @@ Keep the `apple-photos` directory structure unchanged when installing or redistr
 
 ## Contributing and security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Never include real photo-library identifiers, personal paths, or private metadata in issues or test fixtures.
+See [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [SECURITY.md](SECURITY.md). Never include real photo-library identifiers, personal paths, or private metadata in issues or test fixtures.
 
 ## License
 

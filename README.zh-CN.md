@@ -1,4 +1,4 @@
-# Apple Photos Codex Skill
+# Apple Photos Agent Skill
 
 [English](README.md)
 
@@ -11,7 +11,7 @@
 - Apple Photos 中积累了多年、大量照片与视频的人。
 - 喜欢明确规则、固定步骤和可预测结果的人，包括神经多样性用户，以及容易产生决策疲劳的人。
 - 使用外置盘或其他位置保存长期主归档，需要安全导出与比对的人。
-- 希望通过 Codex 自动化 Photos，但不允许工具直接修改 Photos 私有数据库的人。
+- 希望通过 Codex、Claude Code、WorkBuddy 或其他兼容 Agent Skills 的本地 Agent 自动化 Photos，但不允许工具直接修改 Photos 私有数据库的人。
 
 ## 它解决什么问题
 
@@ -40,12 +40,27 @@
 - 安装 Apple Photos 的 macOS。
 - Xcode Command Line Tools，能够使用 `xcrun` 和 Swift 编译器。
 - Python 3。
-- Codex 或其他支持 skill 的 Agent。
+- 能加载 Agent Skills 并执行终端命令的本地 AI Agent，例如 Codex、Claude Code 或 WorkBuddy。
 - macOS 弹出权限请求时，允许访问完整照片图库。
 
 所有处理均在本机运行。本 skill 不会自行上传照片或元数据。
 
-## 安装
+## Agent 兼容性
+
+完整的 `apple-photos/` 文件夹遵循开放的 Agent Skills 目录结构：`SKILL.md` 是唯一权威工作契约，`scripts/` 和 `references/` 分别承载可执行程序与按需读取的参考资料。`agents/openai.yaml` 只是 Codex 的可选界面适配，其他 Agent 不依赖它。
+
+| Agent | 安装方式 |
+|---|---|
+| Codex | 将 `apple-photos/` 复制到 `~/.codex/skills/apple-photos/`，然后重启 Codex。 |
+| Claude Code | 个人安装到 `~/.claude/skills/apple-photos/`；项目安装到 `.claude/skills/apple-photos/`。使用 `/apple-photos` 调用。 |
+| WorkBuddy | 下载 Release ZIP，在 **添加 Skill → 上传 Skill** 中导入本地 skill 包；可从 Skills 页面、输入 `/apple-photos` 或直接用自然语言调用。 |
+| 其他 Agent | 将完整文件夹安装到该产品的 Agent Skills 目录；若产品不自动发现 skill，先要求 Agent 完整读取 `apple-photos/SKILL.md`。 |
+
+Agent 必须运行在持有照片图库的 Mac 本机上。纯云端 Agent 无法直接访问本机系统照片图库，除非它连接到已授予 Photos 权限的可信 macOS 执行环境。
+
+详细说明见 [Agent 兼容性](docs/AGENT-COMPATIBILITY.zh-CN.md)。
+
+## Codex 安装示例
 
 ```bash
 git clone https://github.com/lynnete07/apple-photos-skill.git
@@ -56,11 +71,11 @@ bash scripts/install.sh
 scripts/apple-photos status
 ```
 
-安装完成后重启 Codex，使其发现新 skill。
+安装完成后重启 Codex，使其发现新 skill。Claude Code 与 WorkBuddy 请使用上表中的专属路径或导入方式。
 
 ## 推荐用自然语言开始
 
-大多数用户无需直接编写命令，可以这样对 Codex 说：
+大多数用户无需直接编写命令，可以直接对当前 Agent 描述任务。Codex 使用 `$apple-photos`，Claude Code 与 WorkBuddy 可使用 `/apple-photos`；其他客户端使用其支持的 skill 名称：
 
 ```text
 使用 $apple-photos 分析我 2024 年的所有照片和视频。本轮只分析，不创建或删除任何内容。
@@ -77,6 +92,39 @@ scripts/apple-photos status
 ```text
 使用 $apple-photos 将相册【2024-10-03_香港】的未修改原件导出到 /Volumes/Archive/Photos。Live Photo 导出完整原始资源，不删除任何内容。
 ```
+
+## 分析结果中的相册命名规则
+
+分析阶段给出的相册名是**可编辑建议**，不是系统强制名称。默认格式为：
+
+```text
+YYYY-MM-DD_<标签>
+```
+
+- `YYYY-MM-DD` 取该候选批次中最早的 Photos 拍摄日期，并按 Mac 当前本地时区解释。
+- 地点或主题达到高置信度且得到用户确认时，标签使用地点或主题，例如 `2024-10-03_香港`。
+- 无法可靠判断主题时，单次集中事件默认使用 `待识别主题`；跨多日或包含多个拍摄高峰的连续内容默认使用 `待识别连续段`。
+- 年度兜底相册默认使用 `YYYY_未进入批次`。
+- 如果已有相册已经完整覆盖该批次，保留已有相册的原名称，不重新命名，也不重复创建。
+
+创建相册前，分析结果必须同时展示：建议名称、拍摄范围、内容数量、命名依据和置信度。用户可以逐项修改名称，也可以统一指定命名模板、语言、分隔符、是否保留日期前缀，以及兜底相册名称。
+
+建议输出形式例如：
+
+| 建议相册名 | 拍摄范围 | 数量 | 命名依据 | 置信度 | 可修改 |
+|---|---|---:|---|---|---|
+| `2024-08-24_西安` | 08-24 10:12—18:46 | 63 | GPS 集中在西安，单日拍摄 | 高 | 是 |
+| `2024-09-02_待识别连续段` | 09-02—09-04 | 118 | 连续三日、两个拍摄高峰，无可靠地点 | 未知 | 是 |
+| `2024_未进入批次` | 全年剩余内容 | 27 | 年度覆盖校验后的剩余集合 | 固定功能 | 是 |
+
+最终 manifest 会原样使用用户确认的名称；内容选择依据是批次的日期范围和资产标识，并不依赖相册名称的文字。名称只需非空，并且在 Photos 中能够唯一匹配。因此以下做法都允许：
+
+- 把 `2024-08-24_待识别主题` 改为 `2024-08-24_家庭聚会`。
+- 统一改成英文名称或其他语言。
+- 使用自己的格式，例如 `2024.08.24｜家庭聚会`。
+- 不使用日期前缀，或修改 `2024_未进入批次` 的名称。
+
+如果用户之后在 Apple Photos 中手动改名，Agent 在后续导出、删除或合并前必须重新读取当前相册名称，并更新尚未执行的队列或 manifest，不能继续使用旧名称。完整规则见 [相册命名规范](apple-photos/references/album-naming.md)。
 
 ## 命令行入口
 
@@ -126,7 +174,7 @@ apple-photos-skill/
 │   ├── agents/
 │   ├── references/
 │   └── scripts/
-├── docs/                  # 面向用户的安全说明
+├── docs/                  # 安全说明与跨 Agent 使用文档
 └── tests/                 # 公开验证样例与测试
 ```
 
@@ -142,7 +190,7 @@ apple-photos-skill/
 
 ## 贡献与安全问题
 
-参见 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [SECURITY.md](SECURITY.md)。请勿在 issue 或测试文件中提交真实照片库标识、个人绝对路径或私人元数据。
+参见 [CHANGELOG.md](CHANGELOG.md)、[CONTRIBUTING.md](CONTRIBUTING.md) 和 [SECURITY.md](SECURITY.md)。请勿在 issue 或测试文件中提交真实照片库标识、个人绝对路径或私人元数据。
 
 ## 许可证
 
