@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>ApplePhotosBridge</string>
+  <key>CFBundleIdentifier</key>
+  <string>org.openai.skills.apple-photos</string>
+  <key>CFBundleName</key>
+  <string>Apple Photos Skill</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Analyze, export, and manage Apple Photos assets and albums only when the user requests it.</string>
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>Create albums and manage Photos assets only when the user requests it.</string>
+  <key>com.apple.security.personal-information.photos-library</key>
+  <string>Analyze, export, and manage Apple Photos assets and albums only when the user requests it.</string>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+</dict>
+</plist>

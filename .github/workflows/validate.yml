@@ -1,0 +1,26 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Python helpers
+        run: |
+          python3 -m unittest discover -s tests -p 'test_*.py'
+          python3 -m py_compile apple-photos/scripts/*.py
+      - name: Validate shell launchers
+        run: bash -n apple-photos/scripts/install.sh apple-photos/scripts/apple-photos
+      - name: Build PhotoKit bridge
+        run: bash apple-photos/scripts/install.sh
+      - name: Validate manifests
+        run: |
+          apple-photos/scripts/apple-photos validate-manifest --manifest tests/valid_archive_manifest.json
+          if apple-photos/scripts/apple-photos validate-manifest --manifest tests/invalid_live_mode_manifest.json; then
+            echo "Invalid manifest unexpectedly passed"
+            exit 1
+          fi

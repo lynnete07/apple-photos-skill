@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "operations": [
+    {
+      "action": "archive_album",
+      "album": "Example album",
+      "expected_assets": 1,
+      "output_dir": "/tmp/apple-photos-public-example",
+      "live_photo_export": "full_pair"
+    }
+  ]
+}

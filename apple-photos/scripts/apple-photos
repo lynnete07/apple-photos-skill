@@ -1,0 +1,46 @@
+#!/bin/bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+bash "$script_dir/install.sh" >/dev/null
+app_dir="$(cd "$script_dir/../.runtime/ApplePhotosBridge.app" && pwd)"
+run_dir="$(mktemp -d /tmp/codex-apple-photos.XXXXXX)"
+args=("$@")
+
+cleanup() {
+  case "$run_dir" in
+    /tmp/codex-apple-photos.*) rm -rf -- "$run_dir" ;;
+  esac
+}
+trap cleanup EXIT
+
+for ((index = 0; index < ${#args[@]}; index++)); do
+  if [[ "${args[$index]}" == "--manifest" ]]; then
+    next=$((index + 1))
+    if ((next >= ${#args[@]})); then
+      printf '{"type":"launcher_error","message":"--manifest requires a path"}\n' >&2
+      exit 1
+    fi
+    cp -- "${args[$next]}" "$run_dir/manifest.json"
+    args[$next]="$run_dir/manifest.json"
+    break
+  fi
+done
+
+if [[ "${args[0]:-}" == "validate-manifest" ]]; then
+  "$app_dir/Contents/MacOS/ApplePhotosBridge" "${args[@]}"
+  exit $?
+fi
+
+open -n -W --stdout "$run_dir/stdout" --stderr "$run_dir/stderr" "$app_dir" --args "${args[@]}"
+cat "$run_dir/stdout"
+if [[ -s "$run_dir/stderr" ]]; then
+  cat "$run_dir/stderr" >&2
+fi
+if /usr/bin/grep -q '"type":"error"' "$run_dir/stdout"; then
+  exit 1
+fi
+if ! /usr/bin/grep -Eq '"type":"(authorization|manifest_valid|inspect_complete|scan_complete|batch_complete)"' "$run_dir/stdout"; then
+  printf '{"type":"launcher_error","message":"Apple Photos bridge exited without a terminal result"}\n' >&2
+  exit 1
+fi

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "operations": [
+    {
+      "action": "delete_album_keep_assets",
+      "album": "Example album",
+      "expected_assets": 1,
+      "live_photo_export": "still_only"
+    }
+  ]
+}

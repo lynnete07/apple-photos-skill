@@ -1,0 +1,4 @@
+interface:
+  display_name: "Apple Photos Review"
+  short_description: "低决策负担的 Apple Photos 年度整理与安全归档"
+  default_prompt: "Use $apple-photos to analyze one year, reuse existing albums, create verified review batches, and safely execute my explicit export or deletion decisions."
